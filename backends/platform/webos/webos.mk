@@ -79,6 +79,10 @@ endif
 	$(QUIET)$(STRIP) "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
 	$(QUIET)$(INSTALL) -d "$(DESTDIR)$(docdir)"
 	$(QUIET)$(INSTALL) -c -m 644 $(DIST_FILES_DOCS) "$(DESTDIR)$(docdir)"
+	$(QUIET)$(INSTALL) -c -m 644 "$(PATH_DIST)/README.WebOS" "$(DESTDIR)$(docdir)"
+ifdef USE_FLAC
+	$(QUIET)$(INSTALL) -c -m 644 "$(PATH_DIST)/COPYING.FLAC" "$(DESTDIR)$(docdir)"
+endif
 	$(QUIET)$(INSTALL) -d "$(DESTDIR)$(datadir)"
 	$(QUIET)$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_NETWORKING) $(DIST_FILES_VKEYBD) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(datadir)/"
 ifdef DYNAMIC_MODULES
