@@ -4345,6 +4345,10 @@ PLUGIN_LDFLAGS		+= -static -Wl,-T$(srcdir)/backends/plugins/riscos/plugin.ld bac
 	webos)
 		_plugin_prefix="lib"
 		_plugin_suffix=".so"
+		# Load engine plugins on demand instead of dlopen()ing all of them
+		# at startup (~5s on a TouchPad). Detection is static, so the
+		# launcher does not need the engine plugins.
+		append_var DEFINES "-DUNCACHED_PLUGINS"
 		append_var CXXFLAGS "-fPIC"
 		append_var LIBS "-ldl"
 _mak_plugins='

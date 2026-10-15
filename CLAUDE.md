@@ -322,6 +322,18 @@ Taps in the letterbox bands are clipped to the overlay boundary.
 
 ---
 
+## Startup time / uncached plugins
+
+Since 2.6.2027 the webOS configure section defines `UNCACHED_PLUGINS`.
+The default (cached) plugin manager dlopen()ed all 71 engine plugins
+(54 MB) at startup — 5.3 s of a ~7 s launch on a TouchPad. Detection is
+static (`DETECTION_STATIC`), so the launcher needs no engine plugins;
+the uncached manager loads the one engine needed when a game starts.
+Measured: plugin scan 5.3 s → 0.01 s; launcher ready ~1.5–2.6 s after
+process start (webOS itself takes ~1.2 s to start the process).
+
+---
+
 ## Upstream notes
 
 The upstream ScummVM project has AI contribution guidelines in
