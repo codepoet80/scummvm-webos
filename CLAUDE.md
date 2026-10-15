@@ -19,11 +19,11 @@ Branch history:
 
 | Thing | Location |
 |---|---|
-| Source tree | `/home/jonwise/Projects/scummvm` |
+| Source tree | `/home/jonwise/Projects/scummvm-webos` |
 | Build directory | `/home/jonwise/Projects/scummvm-webos261-build` |
 | WebOS PDK | `/opt/PalmPDK` |
 | WebOS SDK | `/opt/PalmSDK/0.2` |
-| Linaro GCC 4.9.4 | `~/Projects/qupzilla/toolchains/gcc-linaro/bin/` |
+| Linaro GCC 4.9.4 | `/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/` |
 | IPK output | `scummvm-webos261-build/portdist/org.scummvm.scummvm_*.ipk` |
 
 **Always use the Linaro GCC 4.9.4 cross-compiler, never system GCC.**
@@ -48,12 +48,13 @@ The configure invocation that produced the current config.mk:
 ```sh
 export WEBOS_PDK=/opt/PalmPDK
 export WEBOS_SDK=/opt/PalmSDK/0.2
-LINARO=~/Projects/qupzilla/toolchains/gcc-linaro/bin/arm-linux-gnueabi
+LINARO=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi
 cd ~/Projects/scummvm-webos261-build
 CXX="$LINARO-g++" AR="$LINARO-ar cr" RANLIB="$LINARO-ranlib" \
   STRIP="$LINARO-strip" AS="$LINARO-as" \
-  ~/Projects/scummvm/configure \
-  --host=webos --enable-plugins --default-dynamic --enable-release
+  ~/Projects/scummvm-webos/configure \
+  --host=webos --enable-plugins --default-dynamic --enable-release \
+  --enable-flac --with-flac-prefix=$HOME/Projects/webos-deps/arm
 # Then remove stray host includes from CXXFLAGS in config.mk:
 sed -i 's| -I/usr/include/freetype2 -I/usr/include/libpng16||g' config.mk
 # Fix doubled AR (configure appends "cru" again):
@@ -279,12 +280,14 @@ applies to Palm Pre hardware; bugs 1–4 are TouchPad-specific.
 - Direct-touch (default) and trackpad input modes
 - All two-finger and three-finger gestures
 - MIDI, PCM/WAV audio
+- FLAC audio (2.6.2027+): static libFLAC 1.3.4 built by
+  `dists/webos/build-flac-webos.sh` into `~/Projects/webos-deps/arm`.
+  Needed for DXA cutscene soundtracks (`.fla`), e.g. Broken Sword 2.
 - JPEG, freetype font rendering
 
 **Does not work (not built):**
 - OGG/Vorbis music: needs libtremor cross-compiled from PDK sysroot
 - MP3 music: needs libmad
-- FLAC: needs libFLAC
 - Cloud/networking: needs libcurl
 - OpenGL: not present in PDK
 - MT32EMU: disabled — v2.6.x MT32 code uses C99 long-double math (acoshl,
@@ -293,9 +296,8 @@ applies to Palm Pre hardware; bugs 1–4 are TouchPad-specific.
   Add `--enable-mt32emu` with a PDK-sysroot-compiled libm to restore.
 
 **Scoped but not implemented — audio codec addition:**
-- ~13–22 hours: cross-compile libogg + libtremor + libmad (+ optionally
-  libFLAC) against the PDK ARM sysroot using Linaro GCC 4.9.4, then
-  enable USE_TREMOR/USE_MAD/USE_FLAC in configure and rebuild.
+- ~13–22 hours: cross-compile libogg + libtremor + libmad against the PDK ARM sysroot using Linaro GCC 4.9.4, then
+  enable USE_TREMOR/USE_MAD in configure and rebuild.
 - Static linkage preferred (no extra .so files in IPK).
 - See `dists/webos/README.WebOS` for full scope breakdown.
 

@@ -89,10 +89,12 @@ AUDIO
     PCM/WAV       Yes
     OGG Vorbis    No  (libtremor not built)
     MP3           No  (libmad not built)
-    FLAC          No  (libFLAC not built)
+    FLAC          Yes (static libFLAC 1.3.4)
 
   Games that use OGG or MP3 music will run silently for those tracks.
   Many such games still display subtitles and are fully playable.
+  FLAC support covers the .fla soundtracks that accompany DXA cutscenes
+  (e.g. Broken Sword 2).
 
 BUILDING FROM SOURCE
 
@@ -102,6 +104,9 @@ BUILDING FROM SOURCE
     - Linaro GCC 4.9.4 ARM cross-compiler
       (prefix arm-linux-gnueabi-, targeting ARMv6 softfp)
     - The host must have ar, ranlib, nm in the Linaro toolchain bin dir
+    - Static libFLAC cross-compiled for the device. Build it with:
+        ./dists/webos/build-flac-webos.sh [deps-dir]
+      (default deps-dir ~/Projects/webos-deps; output in <deps-dir>/arm)
 
   The Linaro toolchain is required (not a newer GCC) because the WebOS
   device ships glibc 2.5 and only supports symbols up to GLIBC_2.4.
@@ -118,7 +123,9 @@ BUILDING FROM SOURCE
       --host=webos \
       --enable-plugins \
       --default-dynamic \
-      --enable-release
+      --enable-release \
+      --enable-flac \
+      --with-flac-prefix=<deps-dir>/arm
 
   Then edit config.mk to replace short tool names (arm-linux-gnueabi-g++
   etc.) with full Linaro paths if they are not first in PATH.

@@ -55,7 +55,7 @@ The backend lives in:
 |---|---|
 | WebOS PDK | `/opt/PalmPDK` — ARM sysroot, SDL 1.2, freetype, PDL |
 | WebOS SDK | `/opt/PalmSDK/0.2` — `palm-package`, `palm-install`, `palm-launch` |
-| **Linaro GCC 4.9.4** cross-compiler | `~/Projects/qupzilla/toolchains/gcc-linaro/bin/` |
+| **Linaro GCC 4.9.4** cross-compiler | `/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/` |
 | `novacom` | In PATH — used to push/inspect device over USB |
 
 ### Why Linaro GCC 4.9.4 and not the system GCC?
@@ -81,7 +81,7 @@ If the system also has `arm-linux-gnueabi-gcc` (e.g., from
 `arm-linux-gnueabi-ld` instead of Linaro's, contaminating the output.
 
 ```sh
-export PATH=~/Projects/qupzilla/toolchains/gcc-linaro/bin:$PATH
+export PATH=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin:$PATH
 ```
 
 Always set this before running `make`.
@@ -94,7 +94,7 @@ After changing source files on an already-configured branch:
 
 ```sh
 cd ~/Projects/scummvm-webos261-build          # or your build dir
-export PATH=~/Projects/qupzilla/toolchains/gcc-linaro/bin:$PATH
+export PATH=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin:$PATH
 make -j$(nproc)
 make package
 palm-install portdist/org.scummvm.scummvm_*.ipk
@@ -106,23 +106,25 @@ palm-install portdist/org.scummvm.scummvm_*.ipk
 
 ```sh
 BUILD_DIR=~/Projects/scummvm-webos261-build \
-    ~/Projects/scummvm/dists/webos/build-package-webos.sh
+    ~/Projects/scummvm-webos/dists/webos/build-package-webos.sh
 ```
 
 The script:
 1. Validates the PDK, SDK, and Linaro toolchain.
-2. Runs `configure` (only if `config.mk` is stale) with all Linaro paths
+2. Builds static libFLAC into `$DEPS_DIR/arm` (default
+   `~/Projects/webos-deps/arm`) via `build-flac-webos.sh` if it is missing.
+3. Runs `configure` (only if `config.mk` is stale) with all Linaro paths
    baked in via environment variables.
-3. Applies two required `sed` patches to `config.mk` (see below).
-4. Runs `make -j$(nproc)` and `make package`.
+4. Applies two required `sed` patches to `config.mk` (see below).
+5. Runs `make -j$(nproc)` and `make package`.
 
 Override paths with environment variables:
 ```sh
 WEBOS_PDK=/opt/PalmPDK \
 WEBOS_SDK=/opt/PalmSDK/0.2 \
-LINARO_BIN=~/Projects/qupzilla/toolchains/gcc-linaro/bin \
+LINARO_BIN=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin \
 BUILD_DIR=~/Projects/scummvm-webos261-build \
-    ~/Projects/scummvm/dists/webos/build-package-webos.sh
+    ~/Projects/scummvm-webos/dists/webos/build-package-webos.sh
 ```
 
 ### Manual configure invocation
@@ -130,13 +132,14 @@ BUILD_DIR=~/Projects/scummvm-webos261-build \
 ```sh
 export WEBOS_PDK=/opt/PalmPDK
 export WEBOS_SDK=/opt/PalmSDK/0.2
-LINARO=~/Projects/qupzilla/toolchains/gcc-linaro/bin/arm-linux-gnueabi
+LINARO=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi
 
 cd ~/Projects/scummvm-webos261-build
 CXX="$LINARO-g++" AR="$LINARO-ar cr" RANLIB="$LINARO-ranlib" \
     STRIP="$LINARO-strip" AS="$LINARO-as" \
-    ~/Projects/scummvm/configure \
-        --host=webos --enable-plugins --default-dynamic --enable-release
+    ~/Projects/scummvm-webos/configure \
+        --host=webos --enable-plugins --default-dynamic --enable-release \
+  --enable-flac --with-flac-prefix=$HOME/Projects/webos-deps/arm
 
 # Patch 1 — fix AR flag doubling (configure appends flags twice)
 sed -i 's|arm-linux-gnueabi-ar cr cru|arm-linux-gnueabi-ar cr|g' config.mk
@@ -413,7 +416,7 @@ and apply the two `sed` patches to `config.mk`.
 ### Step 7 — Build and iterate
 
 ```sh
-export PATH=~/Projects/qupzilla/toolchains/gcc-linaro/bin:$PATH
+export PATH=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin:$PATH
 make -j$(nproc) 2>&1 | grep -E '^.*error:' | sort -u | head -20
 ```
 
@@ -423,7 +426,7 @@ categories — see the [troubleshooting table](#common-forward-port-errors) belo
 ### Step 8 — Verify symbol cleanliness
 
 ```sh
-NM=~/Projects/qupzilla/toolchains/gcc-linaro/bin/arm-linux-gnueabi-nm
+NM=/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-nm
 
 # No GLIBC symbols beyond 2.4
 $NM scummvm | grep '@GLIBC_' | grep -v '@GLIBC_2\.[0-4]"'   # should be empty
@@ -464,6 +467,7 @@ process is alive and rendering.
 | `ar: illegal option -- cru` or doubled flags | `configure` appends AR flags twice when AR is passed via env | `sed -i 's|ar cr cr|ar cr|g'` and `sed -i 's|ar cr cru|ar cr|g'` on `config.mk` |
 | `-I/usr/include/freetype2` in CXXFLAGS | `configure` finds host system freetype via `pkg-config` | Strip with `sed` post-configure (see build script) |
 | `__isoc23_strtol` / `clock_gettime` undefined | System GCC 13 was used instead of Linaro 4.9.4 | Ensure `PATH` puts Linaro first; pass toolchain via env vars to `configure` |
+| `symbol 'pread64' is already defined` building a C library | glibc 2.5 sysroot headers use GNU89 `extern inline`; GCC 4.9 defaults to C99 inline | Add `-fgnu89-inline` to the library's `CFLAGS` |
 | `::acoshl has not been declared` / `::at_quick_exit` | New engine (e.g. MT32EMU) uses C99 long-double math absent in glibc 2.5 sysroot | Add `_<feature>=no` to the webos configure section |
 | All plugins fail: `undefined symbol: __gnu_thumb1_case_uqi` | Linaro emits Thumb1 helpers as LOCAL symbols; plugins can't resolve them | Add `-static-libgcc` to `PLUGIN_LDFLAGS` in dynamic plugin section |
 | 10+ plugins fail: `undefined symbol` with `STB_GNU_UNIQUE` | GCC 4.6+ emits `u`-type ELF symbols; glibc's dynamic linker only resolves them from glibc ≥ 2.11 | Add `-fno-gnu-unique` to `CXXFLAGS` in configure webos host section |
@@ -476,7 +480,7 @@ process is alive and rendering.
 |---|---|---|
 | OGG/Vorbis (libtremor) | ❌ Not built | Needs cross-compile against PDK sysroot |
 | MP3 (libmad) | ❌ Not built | Needs cross-compile against PDK sysroot |
-| FLAC | ❌ Not built | Needs cross-compile against PDK sysroot |
+| FLAC | ✅ Built (2.6.2027+) | Static libFLAC 1.3.4 from `dists/webos/build-flac-webos.sh` |
 | Cloud / networking (libcurl) | ❌ Not built | Needs cross-compile against PDK sysroot |
 | OpenGL / GLES2 | ❌ Not available | Not in WebOS PDK; TinyGL is used instead |
 | MT32EMU (2.6.x+) | ❌ Disabled | Uses C99 long-double math absent in glibc 2.5 |

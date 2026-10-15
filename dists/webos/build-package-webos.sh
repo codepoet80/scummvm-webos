@@ -15,8 +15,10 @@
 #   - WebOS PDK at /opt/PalmPDK
 #   - WebOS SDK at /opt/PalmSDK/0.2
 #   - Linaro GCC 4.9.4 arm-linux-gnueabi cross-compiler
-#     Default location: ~/Projects/qupzilla/toolchains/gcc-linaro/bin/
+#     Default location: /opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/
 #     Override with LINARO_BIN env var.
+#   - Static libFLAC in $DEPS_DIR/arm (default ~/Projects/webos-deps/arm).
+#     Built automatically by build-flac-webos.sh if missing.
 #
 # IMPORTANT — toolchain:
 #   Always use Linaro GCC 4.9.4, NOT the system GCC.
@@ -33,7 +35,8 @@ BUILD_DIR="${2:-$HOME/Projects/scummvm-webos-build}"
 
 WEBOS_PDK="${WEBOS_PDK:-/opt/PalmPDK}"
 WEBOS_SDK="${WEBOS_SDK:-/opt/PalmSDK/0.2}"
-LINARO_BIN="${LINARO_BIN:-$HOME/Projects/qupzilla/toolchains/gcc-linaro/bin}"
+LINARO_BIN="${LINARO_BIN:-/opt/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin}"
+DEPS_DIR="${DEPS_DIR:-$HOME/Projects/webos-deps}"
 
 # ── Validate environment ──────────────────────────────────────────────────────
 
@@ -64,6 +67,15 @@ echo "    SDK:    $WEBOS_SDK"
 echo "    Source: $SOURCE_DIR"
 echo "    Build:  $BUILD_DIR"
 
+# ── Build third-party libraries ──────────────────────────────────────────────
+
+if [ ! -f "$DEPS_DIR/arm/lib/libFLAC.a" ]; then
+    echo ""
+    echo "==> Building libFLAC"
+    LINARO_BIN="$LINARO_BIN" WEBOS_PDK="$WEBOS_PDK" \
+        "$SCRIPT_DIR/build-flac-webos.sh" "$DEPS_DIR"
+fi
+
 # ── Create build directory ────────────────────────────────────────────────────
 
 mkdir -p "$BUILD_DIR"
@@ -91,7 +103,9 @@ if [ ! -f "$CONFIG_MK" ] || [ "$CONFIGURE" -nt "$CONFIG_MK" ]; then
             --host=webos \
             --enable-plugins \
             --default-dynamic \
-            --enable-release
+            --enable-release \
+            --enable-flac \
+            --with-flac-prefix="$DEPS_DIR/arm"
     )
 
     # Fix AR: configure appends the ar flags twice (cr cru or cr cr), keep only cr.
