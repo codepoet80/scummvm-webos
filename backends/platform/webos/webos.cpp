@@ -24,13 +24,16 @@
 #include "backends/events/webossdl/webossdl-events.h"
 #include "backends/keymapper/keymapper.h"
 
+#include <PDL.h>
+
 #if defined(WEBOS)
 
 using namespace Common;
 
 OSystem_SDL_WebOS::OSystem_SDL_WebOS()
 	:
-	OSystem_POSIX() {
+	OSystem_POSIX(),
+	_keyboardVisible(false) {
 }
 
 /**
@@ -43,6 +46,31 @@ void OSystem_SDL_WebOS::initBackend() {
 
 	// Call parent implementation of this method
 	OSystem_SDL::initBackend();
+}
+
+bool OSystem_SDL_WebOS::hasFeature(Feature f) {
+	// The OS-supplied on-screen keyboard is only available from PDK 3.0
+	// (HP TouchPad); older devices have a hardware keyboard.
+	if (f == kFeatureVirtualKeyboard)
+		return PDL_GetPDKVersion() >= 300;
+	return OSystem_POSIX::hasFeature(f);
+}
+
+void OSystem_SDL_WebOS::setFeatureState(Feature f, bool enable) {
+	if (f == kFeatureVirtualKeyboard) {
+		if (PDL_GetPDKVersion() >= 300) {
+			PDL_SetKeyboardState(enable ? PDL_TRUE : PDL_FALSE);
+			_keyboardVisible = enable;
+		}
+		return;
+	}
+	OSystem_POSIX::setFeatureState(f, enable);
+}
+
+bool OSystem_SDL_WebOS::getFeatureState(Feature f) {
+	if (f == kFeatureVirtualKeyboard)
+		return _keyboardVisible;
+	return OSystem_POSIX::getFeatureState(f);
 }
 
 #endif

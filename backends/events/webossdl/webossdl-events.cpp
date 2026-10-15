@@ -83,11 +83,10 @@ bool WebOSSdlEventSource::handleKeyDown(SDL_Event &ev, Common::Event &event) {
 
 	// handle virtual keyboard dismiss key
 	if (ev.key.keysym.sym == 24) {
-		int gblPDKVersion = PDL_GetPDKVersion();
 		// check for correct PDK Version, as this determines whether an
 		// OS-supplied virtual keyboard is available on this device.
-		if (gblPDKVersion >= 300) {
-			PDL_SetKeyboardState(PDL_FALSE);
+		if (g_system->hasFeature(OSystem::kFeatureVirtualKeyboard)) {
+			g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 			return true;
 		}
 	}
@@ -113,11 +112,10 @@ bool WebOSSdlEventSource::handleKeyUp(SDL_Event &ev, Common::Event &event) {
 
 	// handle virtual keyboard dismiss key
 	if (ev.key.keysym.sym == 24) {
-		int gblPDKVersion = PDL_GetPDKVersion();
 		// check for correct PDK Version, as this determines whether an
 		// OS-supplied virtual keyboard is available on this device.
-		if (gblPDKVersion >= 300) {
-			PDL_SetKeyboardState(PDL_FALSE);
+		if (g_system->hasFeature(OSystem::kFeatureVirtualKeyboard)) {
+			g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 			return true;
 		}
 	}
@@ -329,9 +327,7 @@ bool WebOSSdlEventSource::handleMouseMotion(SDL_Event &ev,
 						// A swipe up triggers the keyboard, if it exists. We
 						// test for existance of a virtual OS keyboard by
 						// checking for the version of the linked PDK libs.
-						int gblPDKVersion = PDL_GetPDKVersion();
-						if (gblPDKVersion >= 300)
-							PDL_SetKeyboardState(PDL_TRUE);
+						g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 					} else if (_dragDiffY[0] > 0 && _dragDiffY[1] > 0) {
 						// A swipe down triggers the menu
 						if (g_engine && !g_engine->isPaused())
